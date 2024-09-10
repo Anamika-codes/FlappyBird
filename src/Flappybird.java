@@ -162,5 +162,163 @@ public class Flappybird extends JPanel implements ActionListener,KeyListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    public void startGame() {
+        remove(buttonPanel);//removes the button panels
+        revalidate();
+        repaint();
+        bird.y =birdY;
+        velocityY =0;
+        pipes.clear();
+        score =0;
+        gameOver =false;
+        gameStarted =true;
+        gameLoop.start();
+        placePipesTimer.start();
+    }
+
+    public void showMenu() {
+        // Logic to display a menu (could be implemented later)
+        JOptionPane.showMessageDialog(this, "Menu: Start a new game or quit.");
+    }
+
+    public void placePipes(){
+        //(0-1)*pipeHeight/2 ->(0-256)
+        //128
+        //0-128 -(0-256) -->pipeHeight/4 -> 3/4 pipeHeight
+
+        int randompipeY = (int)(pipeY - pipeHeight/4 - Math.random()*(pipeHeight/2));
+        int openingSpace = bh/4;
+        Pipe topPipe=new Pipe(topPipeImg);
+        topPipe.y = randompipeY;
+        pipes.add(topPipe);
+        Pipe bottomPipe = new Pipe(bottomPipeImg);
+        bottomPipe.y = topPipe.y + pipeHeight + openingSpace;
+        pipes.add(bottomPipe);
+
 
     }
+
+    public void paintComponent(Graphics g){
+        super.paintComponent(g);
+        draw(g);
+    }
+    public void draw(Graphics g){
+        //background
+        g.drawImage(backgroundImg,0,0,bw,bh,null);
+
+        //bird
+        g.drawImage(bird.img,bird.x,bird.y,bird.width,bird.height,null);
+
+        //pipes
+        for(int i=0;i<pipes.size();i++){
+            Pipe pipe=pipes.get(i);
+            g.drawImage(pipe.img,pipe.x,pipe.y,pipe.width,pipe.height,null);
+        }
+
+        g.setColor(Color.white);
+        g.setFont(new Font("Arial",Font.PLAIN,32));
+        if(gameOver){
+            g.drawString("GAME OVER : " + String.valueOf((int)score),10,35);
+        }
+        else{
+            g.drawString(String.valueOf((int)score),10,35);
+        }
+
+    }
+
+    public Bird getBird() {
+        return bird;
+    }
+    public void move(){//used for gameloop timer
+
+        //bird movement
+        velocityY += gravity;
+        bird.y = bird.y + velocityY;
+        bird.y = Math.max(bird.y,0);
+        //pipe movement
+        for(int i=0;i<pipes.size();i++){
+            Pipe pipe=pipes.get(i);
+            pipe.x=pipe.x+velocityX;
+
+            if(!pipe.passed && bird.x > pipe.x+pipe.width) {
+                pipe.passed = true ;
+                score += 0.5;
+            }
+
+            if(collision(bird,pipe)){
+                gameOver = true;
+                playGameOverSound();
+            }
+        }
+
+        if(bird.y > bh){
+            gameOver = true;
+            playGameOverSound();
+        }
+    }
+    public boolean collision(Bird a,Pipe b){
+        return a.x < b.x + b.width &&
+                a.x + a.width > b.x &&
+                a.y < b.y + b.height &&
+                a.y+a.height > b.y;
+    }
+    public void playFlapSound(){
+        if (flapSound != null) {
+            flapSound.setFramePosition(0); // Reset sound to the start
+            flapSound.start();
+        }
+    }
+    public void playGameOverSound() {
+        if (gameOverSound != null) {
+            gameOverSound.setFramePosition(0);
+            gameOverSound.start();
+        }
+    }
+
+    public void actionPerformed(ActionEvent e){
+        move();
+        repaint();
+        if(gameOver){
+            placePipesTimer.stop();;
+            gameLoop.stop();
+            //Show Buttons when GameOver
+            add(buttonPanel);
+            revalidate();
+            repaint();
+
+
+
+        }//calls the paint method
+    }
+    public void keyReleased(KeyEvent e){
+
+    }
+    public void keyPressed(KeyEvent e){
+        if(e.getKeyCode()==KeyEvent.VK_SPACE) {
+            velocityY = -9;
+            playFlapSound();
+        }
+        if(e.getKeyCode()==KeyEvent.VK_ESCAPE){
+            if(gameOver){
+                bird.y = birdY;
+                velocityY = 0;
+                pipes.clear();
+                score = 0 ;
+                gameOver = false;
+                gameLoop.start();
+                placePipesTimer.start();
+                // Removes button to restart the game
+                remove(buttonPanel);
+                revalidate();
+                repaint();
+
+
+            }
+
+        }
+    }
+    public void keyTyped(KeyEvent e){
+
+    }
+}
